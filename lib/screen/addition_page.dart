@@ -3,11 +3,13 @@ import 'package:ascendtek_test/bloc/main_bloc.dart';
 import 'package:ascendtek_test/model/image_model.dart';
 import 'package:ascendtek_test/utils/button/custom-button.dart';
 import 'package:ascendtek_test/utils/media-query.dart';
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:multi_select_flutter/multi_select_flutter.dart';
+import 'package:rxdart/rxdart.dart';
 
 class AdditionPage extends StatefulWidget {
   const AdditionPage({Key? key}) : super(key: key);
@@ -17,9 +19,10 @@ class AdditionPage extends StatefulWidget {
 }
 
 class _AdditionPageState extends State<AdditionPage> {
-  List<String> _newItems = [];
+  List<dynamic> _newItems = [];
   final mainBloc = Modular.get<MainBloc>();
   final _multiSelectKey = GlobalKey<FormFieldState>();
+  var isLoading = BehaviorSubject<bool>.seeded(false);
 
   @override
   Widget build(BuildContext context) {
@@ -114,22 +117,39 @@ class _AdditionPageState extends State<AdditionPage> {
                                   Divider(
                                     height: 30,
                                   ),
-                                  CustomRaisedButton(
-                                    child: Text('Save'),
-                                    borderRadius: 10,
-                                    onPressed: () async {
-                                      print(
-                                          'save ${_multiSelectKey.currentState!.value}');
-                                      // _multiSelectKey.currentState!.value
-                                      //     .forEach((x) => Tag.fromJson(x));
-                                      final img = ImageModel(
-                                          stringTags: _multiSelectKey
-                                              .currentState!.value,
-                                          url: '',
-                                          views: 0);
-                                      await mainBloc.saveImage(img);
-                                    },
-                                  ),
+                                  StreamBuilder<bool>(
+                                      stream: isLoading.stream,
+                                      builder: (context, snapshot) {
+                                        if (snapshot.data == true) {
+                                          return const Center(
+                                              child:
+                                                  CircularProgressIndicator());
+                                        }
+                                        return CustomRaisedButton(
+                                          child: Text('Save Image'),
+                                          borderRadius: 10,
+                                          onPressed: () async {
+                                            if (_newItems.isEmpty) {
+                                              BotToast.showText(
+                                                  text: 'Select atleast 1 tag',
+                                                  contentColor: Colors.red);
+                                              return;
+                                            }
+                                            isLoading.add(true);
+                                            final img = ImageModel(
+                                                stringTags: _multiSelectKey
+                                                    .currentState!.value,
+                                                url: '',
+                                                views: 0);
+                                            await mainBloc.saveImage(img);
+                                            isLoading.add(false);
+                                            BotToast.showText(
+                                                text: 'Image Saved',
+                                                contentColor: Colors.green);
+                                            // Navigator.of(context).pop();
+                                          },
+                                        );
+                                      }),
                                 ],
                               );
                       }),
@@ -158,7 +178,9 @@ class _AdditionPageState extends State<AdditionPage> {
           // _newItems = values!;
         },
         onTap: (values) {
+          _newItems = values;
           print(values);
+          print(_newItems);
         });
   }
 }

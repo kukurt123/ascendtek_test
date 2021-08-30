@@ -14,7 +14,10 @@ import 'package:uuid/uuid.dart';
 class MainBloc {
   final picker = ImagePicker();
   final file = BehaviorSubject<File>();
-  final firestoreService = FirestoreService.instance;
+  final _firestoreService = FirestoreService.instance;
+  final images$ = BehaviorSubject<List<ImageModel>>();
+  final filteredImages$ = BehaviorSubject<List<ImageModel>>();
+  var selectedTagFilters = [];
 
   Future<firebase_storage.UploadTask> uploadImage<T>(
       {required String folderName,
@@ -52,9 +55,9 @@ class MainBloc {
     return await Future.value(uploadTask);
   }
 
-  Future<String> downloadImage(String imagePath, String folderName) async {
+  Future<String> downloadImage(String imageName, String locationFolder) async {
     final link = await firebase_storage.FirebaseStorage.instance
-        .ref('$folderName/$imagePath.jpg')
+        .ref('$locationFolder/$imageName.jpg')
         .getDownloadURL();
     return link;
   }
@@ -82,20 +85,54 @@ class MainBloc {
   Future<void> setImage(
     ImageModel img,
   ) async =>
-      await firestoreService.setData(
+      await _firestoreService.setData(
         path: AscendTekImageApi.aTekImage(img.url),
         data: img.toJson(),
       );
 
+  Stream<List<ImageModel>> imageModels$() => _firestoreService.collectionStream(
+        path: AscendTekImageApi.aTekImages(),
+        builder: (data, documentId) {
+          print('requestStream...${data.length}');
+          ImageModel req = ImageModel.fromJson(data);
+          // req.copyWith.call(url: documentId);
+          return req;
+        },
+      );
+
+  void getImages() {
+    imageModels$().listen((event) {
+      images$.add(event);
+      filterImages();
+    });
+  }
+
+  filterImages() {
+    var result = <ImageModel>[];
+    if (selectedTagFilters.isEmpty) {
+      result = images$.value;
+    } else {
+      images$.value.forEach((x) {
+        if (x.stringTags.any((y) {
+          return selectedTagFilters.contains(y);
+        })) {
+          result.add(x);
+        }
+      });
+    }
+    result.forEach((element) => print);
+    filteredImages$.add(result);
+  }
+
   final tags = [
-    'Nature',
-    'Selfie',
-    'Office',
-    'Sunset',
-    'Music',
-    'People',
-    'Love',
     'Document',
     'Friendship',
+    'Love',
+    'Music',
+    'Nature',
+    'Office',
+    'People',
+    'Selfie',
+    'Sunset',
   ].map((tag) => MultiSelectItem<String>(tag, tag)).toList();
 }

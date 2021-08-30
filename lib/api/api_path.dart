@@ -1,4 +1,4 @@
 class AscendTekImageApi {
-  static String aTekImage(String uid) => 'ascendtek_image/$uid';
-  static String aTekImages(String uid) => 'ascendtek_image';
+  static String aTekImage(String uid) => 'ascendtek/image/data/$uid';
+  static String aTekImages() => 'ascendtek/image/data';
 }

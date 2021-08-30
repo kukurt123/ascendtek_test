@@ -36,6 +36,7 @@ class ListItemsBuilder<T> extends StatelessWidget {
   Widget _buildList(List<T> items) {
     return ListView.separated(
       physics: BouncingScrollPhysics(),
+      addAutomaticKeepAlives: true,
       shrinkWrap: true,
       itemCount: items.length + 2,
       separatorBuilder: (context, index) => divided ?? false
